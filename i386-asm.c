@@ -2,7 +2,7 @@
  *  i386 specific functions for TCC assembler
  *
  *  Copyright (c) 2001, 2002 Fabrice Bellard
- *  Copyright (c) 2009 Frédéric Feret (x86_64 support)
+ *  Copyright (c) 2009 FrÃ©dÃ©ric Feret (x86_64 support)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,12 +21,13 @@
 
 #include "tcc.h"
 
-// #define NB_ASM_REGS 8
+/* #define NB_ASM_REGS 8 */
 #define MAX_OPERANDS 3
 #define NB_SAVED_REGS 3
 
 #define TOK_ASM_first TOK_ASM_clc
 #define TOK_ASM_last TOK_ASM_emms
+#define TOK_ASM_alllast TOK_ASM_pxor
 
 #define OPC_JMP        0x01  /* jmp operand */
 #define OPC_B          0x02  /* only used with OPC_WL */
@@ -329,7 +330,7 @@ static void parse_operand(TCCState *s1, Operand *op)
                 next();
                 if (tok != TOK_PPNUM)
                     goto reg_error;
-                p = tokc.cstr->data;
+                p = tokc.str.data;
                 reg = p[0] - '0';
                 if ((unsigned)reg >= 8 || p[1] != '\0')
                     goto reg_error;
@@ -715,6 +716,9 @@ ST_FUNC void asm_opcode(TCCState *s1, int opcode)
                 g(b >> 8);
             g(b);
             return;
+        } else if (opcode <= TOK_ASM_alllast) {
+            tcc_error("bad operand with opcode '%s'",
+                  get_tok_str(opcode, NULL));
         } else {
             tcc_error("unknown opcode '%s'",
                   get_tok_str(opcode, NULL));
@@ -1297,7 +1301,7 @@ ST_FUNC void subst_asm_operand(CString *add_str,
             cstr_ccat(add_str, '$');
         if (r & VT_SYM) {
             cstr_cat(add_str, get_tok_str(sv->sym->v, NULL));
-            if (sv->c.i != 0) {
+            if ((uint32_t)sv->c.i != 0) {
                 cstr_ccat(add_str, '+');
             } else {
                 return;
@@ -1306,10 +1310,10 @@ ST_FUNC void subst_asm_operand(CString *add_str,
         val = sv->c.i;
         if (modifier == 'n')
             val = -val;
-        snprintf(buf, sizeof(buf), "%d", sv->c.i);
+        snprintf(buf, sizeof(buf), "%d", (int)sv->c.i);
         cstr_cat(add_str, buf);
     } else if ((r & VT_VALMASK) == VT_LOCAL) {
-        snprintf(buf, sizeof(buf), "%d(%%ebp)", sv->c.i);
+        snprintf(buf, sizeof(buf), "%d(%%ebp)", (int)sv->c.i);
         cstr_cat(add_str, buf);
     } else if (r & VT_LVAL) {
         reg = r & VT_VALMASK;
@@ -1378,7 +1382,7 @@ ST_FUNC void subst_asm_operand(CString *add_str,
     }
 }
 
-/* generate prolog and epilog code for asm statment */
+/* generate prolog and epilog code for asm statement */
 ST_FUNC void asm_gen_code(ASMOperand *operands, int nb_operands,
                          int nb_outputs, int is_output,
                          uint8_t *clobber_regs,
@@ -1427,7 +1431,7 @@ ST_FUNC void asm_gen_code(ASMOperand *operands, int nb_operands,
                     if (op->is_llong) {
                         SValue sv;
                         sv = *op->vt;
-                        sv.c.ul += 4;
+                        sv.c.i += 4;
                         load(TREG_XDX, &sv);
                     }
                 }
@@ -1453,7 +1457,7 @@ ST_FUNC void asm_gen_code(ASMOperand *operands, int nb_operands,
                     if (op->is_llong) {
                         SValue sv;
                         sv = *op->vt;
-                        sv.c.ul += 4;
+                        sv.c.i += 4;
                         store(TREG_XDX, &sv);
                     }
                 }

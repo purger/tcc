@@ -172,10 +172,11 @@
  DEF_ASM(lcall)
  DEF_ASM(ljmp)
 
- DEF_ASMTEST(j)
+ DEF_ASMTEST(j,)
 
- DEF_ASMTEST(set)
- DEF_ASMTEST(cmov)
+ DEF_ASMTEST(set,)
+ DEF_ASMTEST(set,b)
+ DEF_ASMTEST(cmov,)
 
  DEF_WLX(bsf)
  DEF_WLX(bsr)
@@ -191,7 +192,7 @@
  DEF_FP(mul)
 
  DEF_ASM(fcom)
- DEF_ASM(fcom_1) /* non existant op, just to have a regular table */
+ DEF_ASM(fcom_1) /* non existent op, just to have a regular table */
  DEF_FP1(com)
 
  DEF_FP(comp)
